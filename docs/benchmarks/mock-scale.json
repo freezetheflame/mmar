@@ -1,0 +1,49 @@
+{
+  "python": "3.11.15",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "measurement": "tracemalloc Python allocations, excluding interpreter/SQLite native RSS; FULL durability; Mock only",
+  "results": [
+    {
+      "agents": 10,
+      "concurrency": 4,
+      "mock_delay_ms": 5,
+      "registration_seconds": 0.242,
+      "idle_traced_kib": 62.7,
+      "idle_runtime_tasks": 2,
+      "idle_process_working_set_mib": 29.37,
+      "run_seconds": 0.247,
+      "steps_per_second": 40.5,
+      "peak_traced_kib": 425.0,
+      "calls": 10,
+      "committed": 10
+    },
+    {
+      "agents": 100,
+      "concurrency": 4,
+      "mock_delay_ms": 5,
+      "registration_seconds": 0.545,
+      "idle_traced_kib": 63.5,
+      "idle_runtime_tasks": 2,
+      "idle_process_working_set_mib": 29.78,
+      "run_seconds": 2.441,
+      "steps_per_second": 41.0,
+      "peak_traced_kib": 224.5,
+      "calls": 100,
+      "committed": 100
+    },
+    {
+      "agents": 1000,
+      "concurrency": 4,
+      "mock_delay_ms": 5,
+      "registration_seconds": 7.131,
+      "idle_traced_kib": 157.1,
+      "idle_runtime_tasks": 2,
+      "idle_process_working_set_mib": 30.89,
+      "run_seconds": 29.068,
+      "steps_per_second": 34.4,
+      "peak_traced_kib": 635.5,
+      "calls": 1000,
+      "committed": 1000
+    }
+  ]
+}

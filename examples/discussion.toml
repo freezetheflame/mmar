@@ -1,0 +1,29 @@
+store = "../.mmar/discussion.db"
+agent_root = "agents"
+
+[limits]
+concurrency = 2
+calls = 30
+session_calls = 30
+agent_calls = 30
+session_steps = 30
+
+[[agents]]
+id = "alice"
+directory = "alice"
+
+[[agents]]
+id = "bob"
+directory = "bob"
+
+[[agents]]
+id = "charlie"
+directory = "charlie"
+
+[[groups]]
+id = "room"
+members = ["alice", "bob", "charlie"]
+
+[seed]
+target = "alice"
+content = "讨论如何实现轻量而可靠的多 Agent 协作。可以联系任意同伴或向 room 广播。观点收敛后保持沉默。"
