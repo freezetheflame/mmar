@@ -59,11 +59,11 @@ HTTP 接口测试使用 HTTPX MockTransport，验证请求字段、key 不进入
 
 ## 当前限制与下一次验证
 
-- 尚未使用真实 key，提供方模型名称、JSON mode、token 参数、usage 和实际取消表现需接入后测试。
+- 已验证 Intern Discovery 的 `deepseek-v4-flash-0731`、JSON mode、`max_tokens` 和 usage；30 Agent 环形通信测试全部成功，详见 [真实模型验证](live-provider-validation.md)。其他提供方及远端实际取消行为尚未验证。
 - token 指标是提供方已报告的数值，不是精确资金预算；没有 usage 的请求单独呈现。
 - Agent 不自行定时唤醒，环境通过 activate 或消息触发。
 - 同 ID 的记忆跨 session 共享，ID 在同 Store 中不复用。
 - 历史版本和事件保留，尚未自动归档清理；长期实验需管理 Store 磁盘使用。
 - 核心只有 Python API 和 CLI，尚无 Web 服务或图形界面。
 
-结论：离线 MVP 和兼容 API 接口可以交付；下一步用真实提供方做小规模端到端试跑，采用有限请求预算和共享限速。
+结论：离线 MVP 和兼容 API 接口已交付，并完成有限预算、共享限速下的 30 Agent 真实模型端到端试跑。

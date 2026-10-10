@@ -72,7 +72,20 @@ $env:MMAR_JSON_MODE = "0"
 
 key 只读取到模型客户端内存并用于 Authorization header，不写入 SQLite、Agent 上下文或日志。`.env.example` 只是配置说明，程序不会自动读取 `.env`。TLS 验证开启，禁止远程明文 HTTP；不跟随重定向、不自动读取代理环境变量，不执行模型生成的代码或工具。
 
-目前真实提供方尚未端到端验证；本地 HTTPX MockTransport 测试已覆盖请求格式、429、取消和响应大小限制。协议按 [OpenAI 官方请求参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) 与 [HTTPX 异步接口](https://www.python-httpx.org/async/) 核对。JSON 格式仍由 Runtime 本地验证。
+已使用 Intern Discovery 提供的 `deepseek-v4-flash-0731` 完成 30 Agent 真实模型测试：60 个 step 全部提交、60 次投递全部消费，全部 Agent 的记忆更新成功。并发上限 4，耗时约 96 秒，63 次请求共报告 59,811 tokens，其中 3 次 JSON 修复。详见 [真实模型验证](docs/live-provider-validation.md)。本地 HTTPX MockTransport 测试另覆盖请求格式、429、取消和响应大小限制。协议按 [OpenAI 官方请求参考](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) 与 [HTTPX 异步接口](https://www.python-httpx.org/async/) 核对。JSON 格式仍由 Runtime 本地验证。
+
+复现 30 Agent 有限环形通信测试（会消耗真实 API 配额）：
+
+```powershell
+$env:MMAR_API_BASE = "https://discovery-api.intern-ai.org.cn/v1"
+$env:MMAR_MODEL = "deepseek-v4-flash-0731"
+$env:MMAR_TOKEN_PARAMETER = "max_tokens"
+$env:MMAR_JSON_MODE = "1"
+uv run --no-sync python -m benchmarks.live_scale --agents 30 --concurrency 4 --calls 80 --output-tokens 512 --rate 2 --timeout 300
+Remove-Item Env:MMAR_API_KEY
+```
+
+先按上面的方式输入 key。脚本给每位 Agent 注入初始消息；模型自行生成 send Action 向下一位发言，接收后更新记忆并沉默。调用预算包含 JSON 修复与重试；本地结果和 SQLite 保存在被 Git 忽略的 `.mmar/`。
 
 ## Python 环境接口
 

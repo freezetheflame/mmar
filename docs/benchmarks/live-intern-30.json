@@ -1,0 +1,320 @@
+{
+  "run_id": "live-10dad96b3c",
+  "model": "deepseek-v4-flash-0731",
+  "agents": 30,
+  "concurrency_limit": 4,
+  "call_limit": 80,
+  "output_token_limit": 512,
+  "requests_per_second_limit": 2.0,
+  "python": "3.11.15",
+  "workload": "Each agent sends one short idea to its next peer; receivers update memory and become silent.",
+  "idle_runtime_tasks": 2,
+  "idle_process_working_set_mib": 35.82,
+  "timed_out": false,
+  "run_seconds": 95.929,
+  "metrics": {
+    "id": 1,
+    "state": "RUNNING",
+    "steps": 60,
+    "calls": 63,
+    "deliveries": 60,
+    "budget_epoch": 0,
+    "pending": 0,
+    "active": 0,
+    "event_seq": 399,
+    "step_states": {
+      "committed": 60
+    },
+    "agents": 30,
+    "sqlite_version": "3.53.1",
+    "usage_known_attempts": 63,
+    "usage_unknown_attempts": 0,
+    "reported_tokens": {
+      "prompt_tokens": 41459,
+      "completion_tokens": 18352,
+      "total_tokens": 59811
+    },
+    "runtime_state": "RUNNING",
+    "task_count": 0,
+    "fault": null
+  },
+  "peak_adapter_calls": 4,
+  "http_statuses": {
+    "200": 63
+  },
+  "sampled_peak_process_working_set_mib": 42.62,
+  "adapter_latency_seconds": {
+    "mean": 5.798,
+    "max": 25.069
+  },
+  "agents_with_committed_steps": 30,
+  "agents_with_updated_memory": 30,
+  "step_errors": {},
+  "attempt_errors": {},
+  "delivery_states": {
+    "consumed": 60
+  },
+  "agent_messages": [
+    {
+      "sender": "agent000",
+      "targets": [
+        "agent001"
+      ],
+      "content": "使用共享缓存避免重复计算，减少推理调用次数。"
+    },
+    {
+      "sender": "agent002",
+      "targets": [
+        "agent003"
+      ],
+      "content": "复用上下文并精简消息，减少重复请求以节省算力。"
+    },
+    {
+      "sender": "agent001",
+      "targets": [
+        "agent002"
+      ],
+      "content": "建议复用上下文缓存，减少重复输入，并裁剪冗长记忆以节省令牌。"
+    },
+    {
+      "sender": "agent003",
+      "targets": [
+        "agent004"
+      ],
+      "content": "建议复用消息批处理，减少频繁唤醒，按需传递数据，可节省通信资源。"
+    },
+    {
+      "sender": "agent006",
+      "targets": [
+        "agent007"
+      ],
+      "content": "统一缓存高频结果，减少重复计算与传输。"
+    },
+    {
+      "sender": "agent005",
+      "targets": [
+        "agent006"
+      ],
+      "content": "建议批量处理短消息，减少空转唤醒，降低推理能耗。"
+    },
+    {
+      "sender": "agent008",
+      "targets": [
+        "agent009"
+      ],
+      "content": "精简消息体，合并频繁小请求，复用连接，减少冗余传输。"
+    },
+    {
+      "sender": "agent007",
+      "targets": [
+        "agent008"
+      ],
+      "content": "建议复用计算结果，减少重复传输，能显著节省 Token 和算力资源。"
+    },
+    {
+      "sender": "agent009",
+      "targets": [
+        "agent010"
+      ],
+      "content": "建议使用共享上下文池，减少重复消息广播，节省算力与带宽。"
+    },
+    {
+      "sender": "agent004",
+      "targets": [
+        "agent005"
+      ],
+      "content": "建议缓存公共计算结果，避免重复推理以节省资源。"
+    },
+    {
+      "sender": "agent012",
+      "targets": [
+        "agent013"
+      ],
+      "content": "请复用上一轮计算结果，减少重复推理消耗。"
+    },
+    {
+      "sender": "agent011",
+      "targets": [
+        "agent012"
+      ],
+      "content": "建议复用中间结果，减少重复计算与存储开销。"
+    },
+    {
+      "sender": "agent013",
+      "targets": [
+        "agent014"
+      ],
+      "content": "建议复用上下文缓存，减少重复计算与token消耗。"
+    },
+    {
+      "sender": "agent014",
+      "targets": [
+        "agent015"
+      ],
+      "content": "优先复用历史推理结果，避免重复计算，可显著节省算力资源。"
+    },
+    {
+      "sender": "agent015",
+      "targets": [
+        "agent016"
+      ],
+      "content": "复用缓存与中间结果，减少重复计算和空转唤醒。"
+    },
+    {
+      "sender": "agent016",
+      "targets": [
+        "agent017"
+      ],
+      "content": "建议复用上下文缓存，减少重复计算；低优先级任务错峰执行以节省算力。"
+    },
+    {
+      "sender": "agent017",
+      "targets": [
+        "agent018"
+      ],
+      "content": "建议复用计算结果并压缩消息，减少不必要广播。"
+    },
+    {
+      "sender": "agent019",
+      "targets": [
+        "agent020"
+      ],
+      "content": "建议复用缓存计算结果，减少重复请求，降低算力消耗。"
+    },
+    {
+      "sender": "agent020",
+      "targets": [
+        "agent021"
+      ],
+      "content": "建议合并小消息批量发送，减少通信轮次和能耗。"
+    },
+    {
+      "sender": "agent021",
+      "targets": [
+        "agent022"
+      ],
+      "content": "建议复用聊天记录，避免重复加载同一批消息，节省带宽和算力。"
+    },
+    {
+      "sender": "agent023",
+      "targets": [
+        "agent024"
+      ],
+      "content": "复用上下文缓存，减少重复请求，可显著降低算力开销。"
+    },
+    {
+      "sender": "agent010",
+      "targets": [
+        "agent011"
+      ],
+      "content": "建议复用已计算结果，避免重复推理，可显著节省算力与时间。"
+    },
+    {
+      "sender": "agent024",
+      "targets": [
+        "agent025"
+      ],
+      "content": "建议复用缓存并批量处理消息，减少重复计算与网络开销。"
+    },
+    {
+      "sender": "agent025",
+      "targets": [
+        "agent026"
+      ],
+      "content": "请复用已训练模型缓存，避免重复计算；关闭闲置服务。"
+    },
+    {
+      "sender": "agent018",
+      "targets": [
+        "agent019"
+      ],
+      "content": "建议共用中间结果，减少重复计算和缓存开销。"
+    },
+    {
+      "sender": "agent022",
+      "targets": [
+        "agent023"
+      ],
+      "content": "复用已有消息批次，减少不必要广播，节约通信资源。"
+    },
+    {
+      "sender": "agent026",
+      "targets": [
+        "agent027"
+      ],
+      "content": "复用已有消息，减少重复发送，节省资源。"
+    },
+    {
+      "sender": "agent028",
+      "targets": [
+        "agent029"
+      ],
+      "content": "请优先复用已有计算结果，减少重复消息与冗余日志。"
+    },
+    {
+      "sender": "agent027",
+      "targets": [
+        "agent028"
+      ],
+      "content": "建议复用推理结果缓存，减少重复计算开销。"
+    },
+    {
+      "sender": "agent029",
+      "targets": [
+        "agent000"
+      ],
+      "content": "建议复用中间缓存结果，减少重复计算与内存占用。"
+    }
+  ],
+  "integrity_check": "ok",
+  "success": true,
+  "session_state": "IDLE",
+  "schema_repair_calls": 3,
+  "steps_per_agent": {
+    "agent000": 2,
+    "agent001": 2,
+    "agent002": 2,
+    "agent003": 2,
+    "agent004": 2,
+    "agent005": 2,
+    "agent006": 2,
+    "agent007": 2,
+    "agent008": 2,
+    "agent009": 2,
+    "agent010": 2,
+    "agent011": 2,
+    "agent012": 2,
+    "agent013": 2,
+    "agent014": 2,
+    "agent015": 2,
+    "agent016": 2,
+    "agent017": 2,
+    "agent018": 2,
+    "agent019": 2,
+    "agent020": 2,
+    "agent021": 2,
+    "agent022": 2,
+    "agent023": 2,
+    "agent024": 2,
+    "agent025": 2,
+    "agent026": 2,
+    "agent027": 2,
+    "agent028": 2,
+    "agent029": 2
+  },
+  "memory_updates": 60,
+  "ring_targets_valid": true,
+  "date": "2026-10-10",
+  "api_base": "https://discovery-api.intern-ai.org.cn/v1",
+  "token_parameter": "max_tokens",
+  "json_mode": true,
+  "warmup": {
+    "http_status": 200,
+    "schema_valid": true,
+    "calls": 1,
+    "total_tokens": 366,
+    "seconds": 2.4
+  },
+  "session_state_after_close": "STOPPED",
+  "session_state_evidence": "Persisted session.idle event immediately before session.stopped on Runtime.close."
+}
