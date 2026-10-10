@@ -1,0 +1,24 @@
+{
+  "steps_with_multiple_attempts": 3,
+  "extra_attempts": 3,
+  "mean_prompt_tokens_per_call": 658.1,
+  "mean_completion_tokens_per_call": 291.3,
+  "context_utf8_bytes_mean": {
+    "directory": 360.0,
+    "messages": 195.1,
+    "history": 186.8,
+    "memory": 65.2,
+    "identity": 544.0,
+    "context": 2597.9
+  },
+  "claim_query_plan": [
+    "SCAN a",
+    "CORRELATED SCALAR SUBQUERY 1",
+    "SEARCH st USING COVERING INDEX one_running_step (agent_id=?)",
+    "CORRELATED SCALAR SUBQUERY 2",
+    "SEARCH d USING INDEX inbox_idx (agent_id=? AND state=?)",
+    "SEARCH m USING INDEX sqlite_autoindex_messages_1 (id=?)",
+    "SEARCH s USING INDEX sqlite_autoindex_sessions_1 (id=?)",
+    "USE TEMP B-TREE FOR ORDER BY"
+  ]
+}

@@ -4,41 +4,43 @@
 
 **Minimal Multi-Agent Runtime**
 
-让 Agent 自主交流，让 Runtime 管住执行。
+**English** | [简体中文](README.zh-CN.md)
+
+Agents choose how to communicate. The runtime keeps execution bounded and durable.
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
 [![Core dependencies: 0](https://img.shields.io/badge/core_dependencies-0-59D6B0?style=flat-square)](pyproject.toml)
 [![Tests: 47 passed](https://img.shields.io/badge/tests-47_passed-59D6B0?style=flat-square)](docs/mvp-validation.md)
 [![Status: MVP](https://img.shields.io/badge/status-MVP-E7B96A?style=flat-square)](docs/mvp-validation.md)
 
-[快速开始](#快速开始) · [工作方式](#工作方式) · [真实模型实测](#真实模型实测) · [接入模型](#接入模型) · [文档](#文档)
+[Quick start](#quick-start) · [How it works](#how-it-works) · [Live model validation](#live-model-validation) · [Connect a model](#connect-a-model) · [Documentation](#documentation)
 
 </div>
 
-![MMAR — Many agents. One runtime. 逻辑 Agent 共享运行时、受限执行槽位和持久化 SQLite 状态。](docs/assets/mmar-banner.svg)
+![MMAR — Many agents. One runtime. Logical agents share bounded execution slots and persistent SQLite state.](docs/assets/mmar-banner.svg)
 
-MMAR 是一个 **轻量、事件驱动、可嵌入 Python 程序的多 Agent 运行时**。每个 Agent 由身份、记忆和收到的消息驱动，可以选择同伴发送消息、向群组广播，或保持沉默。共享 Runtime 负责调度、并发限制、请求预算与可靠提交。
+MMAR is a **small, event-driven multi-agent runtime you can embed in a Python program**. Each agent acts on its identity, memory, and incoming messages. It can send a message to selected peers, broadcast to a group, or stay silent. A shared runtime handles scheduling, concurrency, request budgets, and durable commits.
 
-核心采用 **Python + asyncio + SQLite**，没有第三方运行依赖。连接真实模型时，只需额外安装 HTTPX。适合有限规模的多 Agent 协作实验、消息驱动的模拟，以及需要保留执行记录的原型。
+The core uses **Python + asyncio + SQLite**, with zero third-party runtime dependencies. Add HTTPX to connect a real model. MMAR is useful for bounded collaboration experiments, message-driven simulations, and prototypes that need persistent execution records.
 
-> **已完成真实模型验证：** 30 个 Agent、4 个执行槽位，60 个 step 全部提交，60 次投递全部消费，30 份记忆全部更新。[查看完整记录 →](docs/live-provider-validation.md)
+> **Validated with a real model:** 30 agents sharing 4 execution slots, 60 committed steps, 60 consumed deliveries, and updated memory for every agent. [Read the full report →](docs/live-provider-validation.md)
 
-## 为什么做 MMAR
+## Why MMAR
 
-Agent 数量增长时，每个角色都拥有后台循环、客户端和独立队列，会增加闲置资源与生命周期管理成本。MMAR 将 Agent 保留为逻辑身份，把实际工作交给共享运行时；只有收到输入的 Agent 才占用执行槽位。
+Giving every role its own background loop, client, and queue increases idle resource use and lifecycle complexity as the number of agents grows. MMAR keeps agents as logical identities and delegates work to a shared runtime. Only agents with incoming work occupy execution slots.
 
-| 设计 | 带来的行为 |
+| Design | Resulting behavior |
 |---|---|
-| **按消息唤醒** | 没有输入的 Agent 不持有独立 Task、Queue、Lock 或模型客户端 |
-| **共享执行** | 注册数量与并发分开设置；30 个角色可以共用 4 个执行槽位 |
-| **结构化意图** | 模型只返回通信与记忆更新意图，Runtime 校验后执行 |
-| **一次事务提交** | 记忆更新、输出消息、输入消费和 step 完成状态整体落入 SQLite |
-| **有限运行** | 请求、step、投递、收件箱、上下文和输出都可以设置上限 |
-| **记录可检查** | 消息、事件、版本与调用计数持久保存，支持游标读取和重启恢复 |
+| **Message-driven activation** | Idle agents have no dedicated Task, Queue, Lock, or model client |
+| **Shared execution** | Registration and concurrency are separate; 30 roles can share 4 execution slots |
+| **Structured decisions** | Models return communication and memory-update intents, validated by the runtime |
+| **One atomic commit** | Memory updates, outgoing messages, input consumption, and step completion commit together in SQLite |
+| **Bounded runs** | Configure limits for requests, steps, deliveries, inboxes, context, and output |
+| **Inspectable records** | Persist messages, events, versions, and call counts, with cursor-based reads and restart recovery |
 
-## 快速开始
+## Quick start
 
-需要 **Python 3.11+**。克隆后即可运行离线示例，无需 API key：
+Requires **Python 3.11+**. Clone the repository and run the offline demo without an API key:
 
 ```bash
 git clone https://github.com/freezetheflame/mmar.git
@@ -46,30 +48,30 @@ cd mmar
 python -m mmar demo --agents 10
 ```
 
-这个确定性 Mock 示例会演示多目标发送、广播、记忆更新与最终沉默。每次创建独立的 `.mmar/demo-*.db`，不会发出网络请求。
+This deterministic Mock demo covers multi-target sends, broadcasts, memory updates, and eventual silence. Each run creates a separate `.mmar/demo-*.db` and makes no network requests.
 
-使用锁定依赖安装真实模型接口：
+Install the optional API adapter with locked dependencies:
 
 ```bash
 uv sync --frozen --extra api
 uv run --no-sync mmar demo --agents 10
 ```
 
-也可以使用 `python -m pip install -e ".[api]"` 安装到自己的虚拟环境。文件身份与记忆示例见 [examples/discussion.toml](examples/discussion.toml)，完整操作见 [使用指南](docs/runtime-guide.md)。
+Alternatively, install into your virtual environment with `python -m pip install -e ".[api]"`. See [examples/discussion.toml](examples/discussion.toml) for file-based identities and memory, and the [usage guide](docs/runtime-guide.md) for detailed commands. The guide and example prompts are currently in Chinese.
 
-## 工作方式
+## How it works
 
 ```mermaid
 flowchart LR
-    Input["环境输入 / 同伴消息"] --> Inbox["SQLite 持久收件箱"]
-    Inbox --> Runtime["共享 Runtime<br/>领取输入 · 限制并发与预算"]
-    Runtime --> Snapshot["身份 + 记忆 + 消息快照"]
-    Snapshot --> Model["共享 ModelAdapter"]
-    Model --> Decision["JSON 意图<br/>发送 · 广播 · 沉默 · 更新记忆"]
-    Decision --> Validate["校验协议、权限和容量"]
-    Validate --> Commit["SQLite 原子提交<br/>记忆 + 输出 + 输入消费 + 完成状态"]
+    Input["Environment input / peer messages"] --> Inbox["SQLite persistent inbox"]
+    Inbox --> Runtime["Shared runtime<br/>Claim input · Bound concurrency and budgets"]
+    Runtime --> Snapshot["Identity + memory + message snapshot"]
+    Snapshot --> Model["Shared ModelAdapter"]
+    Model --> Decision["JSON intents<br/>Send · Broadcast · Silence · Update memory"]
+    Decision --> Validate["Validate protocol, permissions, and capacity"]
+    Validate --> Commit["Atomic SQLite commit<br/>Memory + output + input consumption + completion"]
     Commit --> Inbox
-    Commit --> Events["持久事件 / Markdown 记忆导出"]
+    Commit --> Events["Persistent events / Markdown memory export"]
 
     classDef store fill:#122C2B,stroke:#59D6B0,color:#E6FFF5;
     classDef execution fill:#17243B,stroke:#819FCC,color:#EDF3FF;
@@ -77,45 +79,45 @@ flowchart LR
     class Runtime,Snapshot,Model,Decision,Validate execution;
 ```
 
-**Agent 决定说什么、说给谁，以及何时沉默；Runtime 决定这一步是否允许执行，并可靠地记录结果。** 身份与记忆是数据，逻辑 Agent 不对应一个常驻线程或服务。SQLite 保存权威状态，Markdown 文件用于导入和导出。
+**Agents choose what to say, whom to contact, and when to stay silent. The runtime validates each step and persists its outcome.** Identity and memory are data; a logical agent does not require a resident thread or service. SQLite holds authoritative state, while Markdown files support import and export.
 
-一次模型输出可以很小：
+A model decision can be small:
 
 ```json
 {
   "actions": [
-    {"type": "send", "targets": ["bob"], "content": "先复用已有计算结果，减少重复推理。"}
+    {"type": "send", "targets": ["bob"], "content": "Reuse existing results to reduce repeated inference."}
   ],
-  "memory_replace": "# Memory\n\n- 已向 Bob 分享建议。"
+  "memory_replace": "# Memory\n\n- Shared a suggestion with Bob."
 }
 ```
 
-`send` 支持一个或多个目标，`broadcast` 面向已定义的群组。`actions: []` 表示沉默，`memory_replace: null` 表示保留当前记忆。模型输出需通过本地校验才能提交。
+`send` accepts one or more targets; `broadcast` addresses a defined group. `actions: []` means silence, and `memory_replace: null` preserves existing memory. Every decision must pass local validation before it can commit.
 
-## 真实模型实测
+## Live model validation
 
-2026-10-10，使用 Intern Discovery 的 `deepseek-v4-flash-0731`，完成 **30 Agent 环形通信**：每位 Agent 向下一位发送一条观点，接收同伴消息后更新记忆并沉默。
+On 2026-10-10, Intern Discovery's `deepseek-v4-flash-0731` completed a **30-agent ring test**. Each agent sent one idea to its next peer, then updated memory and stayed silent after receiving a peer message.
 
-| 指标 | 实测结果 |
+| Metric | Observed result |
 |---|---:|
-| 成功执行 / 注册 Agent | **30 / 30** |
-| 成功提交 step / 消费投递 | **60 / 60** |
-| 在途模型调用峰值 | **4** |
-| 耗时 | **95.9 秒** |
-| 请求数，含 JSON 修复 | **63** |
-| 失败 step / 待处理投递 | **0 / 0** |
-| 采样进程工作集峰值 | **42.62 MiB** |
-| 提供方报告总 tokens | **59,811** |
+| Successfully executed / registered agents | **30 / 30** |
+| Committed steps / consumed deliveries | **60 / 60** |
+| Peak in-flight model calls | **4** |
+| Elapsed time | **95.9 seconds** |
+| Requests, including JSON repairs | **63** |
+| Failed steps / pending deliveries | **0 / 0** |
+| Sampled peak process working set | **42.62 MiB** |
+| Provider-reported total tokens | **59,811** |
 
-所有 63 次请求返回 HTTP 200；其中 3 次输出需经过 JSON 修复，修复后均提交成功。以上不含 1 次连通性调用。该测试验证有限通信流程，尚不能代表长期自由讨论的质量或吞吐。
+All 63 requests returned HTTP 200. Three outputs needed a JSON repair; all repaired steps committed successfully. These figures exclude one connectivity probe. This test validates a bounded communication workflow; it does not establish the quality or throughput of long-running, open-ended discussions.
 
-离线规模测试还验证了 **1,000 个注册 Agent**：闲置后台 asyncio 任务保持为 **2 个**，本机进程工作集约 **30.89 MiB**。这些 Agent 共用 4 个执行槽位；Mock 吞吐不等同于真实模型吞吐。完整数据见 [真实模型报告](docs/live-provider-validation.md) 和 [资源测量](docs/mvp-validation.md)。
+An offline scale test also exercised **1,000 registered agents**: idle background asyncio tasks stayed at **2**, with a local process working set of approximately **30.89 MiB**. These agents shared 4 execution slots. Mock throughput is not real-model throughput. See the [live model report](docs/live-provider-validation.md) and [resource measurements](docs/mvp-validation.md) for methodology and limitations.
 
-## 接入模型
+## Connect a model
 
-支持 OpenAI-style **Chat Completions**。设置 API 根路径，例如 `https://example.com/v1`；适配器会追加 `/chat/completions`。
+The optional adapter supports OpenAI-style **Chat Completions**. Set an API root such as `https://example.com/v1`; the adapter appends `/chat/completions`.
 
-PowerShell 7 示例：
+Example for PowerShell 7:
 
 ```powershell
 $env:MMAR_API_KEY = Read-Host "API key" -MaskInput
@@ -131,13 +133,24 @@ try {
 }
 ```
 
-`--calls` 包含失败、重试与 JSON 修复；`--rate` 共享限速；`--output-tokens` 限制单次输出。兼容服务也可选 `max_completion_tokens`，或设置 `MMAR_JSON_MODE=0` 关闭提供方 JSON mode。本地校验始终启用。
+`--calls` includes failures, retries, and JSON repairs. `--rate` applies a shared request rate limit, and `--output-tokens` bounds generation per request. Other compatible services may require `max_completion_tokens`, or `MMAR_JSON_MODE=0` to disable provider JSON mode. Local validation always remains enabled.
 
-Key 仅用于客户端的 Authorization header，不写入 Agent 提示词、SQLite 或日志。`.env.example` 是配置模板，程序不会自动读取 `.env`。默认运行数据库保存在被 Git 忽略的 `.mmar/`；文件示例会另外导出各 Agent 的 Markdown 记忆。
+Keys are used only in the client's Authorization header, never in agent prompts, SQLite, or logs. `.env.example` is a configuration template; the program does not automatically load `.env`. Default databases live in the Git-ignored `.mmar/` directory. File-based examples also export each agent's Markdown memory.
 
-30 Agent 实测的复现命令与完整说明见 [使用指南](docs/runtime-guide.md#接入真实模型)。
+To reproduce the bounded 30-agent test, use the same provider settings and enter the key again:
 
-## 嵌入自己的 Python 程序
+```powershell
+$env:MMAR_API_KEY = Read-Host "API key" -MaskInput
+try {
+    uv run --no-sync python -m benchmarks.live_scale --agents 30 --concurrency 4 --calls 80 --output-tokens 512 --rate 2 --timeout 300
+} finally {
+    Remove-Item Env:MMAR_API_KEY
+}
+```
+
+This command consumes real API quota. Use a fresh run and explicit limits when comparing configurations. For additional provider and lifecycle details, see the [usage guide](docs/runtime-guide.md#接入真实模型).
+
+## Embed in Python
 
 ```python
 import asyncio
@@ -147,50 +160,53 @@ async def main():
     async with await Runtime.open(
         ".mmar/custom.db", model=MockModel(), limits=Limits(concurrency=2)
     ) as runtime:
-        await runtime.register_agent("alice", identity="你是研究员 Alice。")
-        await runtime.register_agent("bob", identity="你是工程师 Bob。")
+        await runtime.register_agent("alice", identity="You are Alice, a researcher.")
+        await runtime.register_agent("bob", identity="You are Bob, an engineer.")
         await runtime.create_session("discussion", ["alice", "bob"])
-        await runtime.inject_message("discussion", "alice", "开始讨论", "seed-1")
+        await runtime.inject_message("discussion", "alice", "Start the discussion", "seed-1")
         await runtime.start()
         print(await runtime.wait_idle("discussion", timeout=30))
 
 asyncio.run(main())
 ```
 
-`MockModel()` 默认保持沉默。可以传入同步或异步 `policy(snapshot)`，也可替换为真实模型 Adapter。自定义 Adapter 只需实现 `complete(snapshot, repair=False)` 和 `aclose()`；每次 complete 至多发出一次模型请求。
+`MockModel()` is silent by default. Pass a synchronous or asynchronous `policy(snapshot)`, or substitute a real model adapter. A custom adapter implements only `complete(snapshot, repair=False)` and `aclose()`; each complete makes at most one model request.
 
-通过 Python API 还可管理注册与注销、会话与群组、暂停与恢复、停止与 drain、记忆导入导出、预算重置，以及事件游标。[查看接口与运行语义 →](docs/runtime-guide.md#python-环境接口)
+The Python API also supports agent registration and retirement, sessions and groups, pause and resume, stop and drain, memory import and export, explicit budget reset, and event cursors. [Read the API and runtime semantics →](docs/runtime-guide.md#python-环境接口)
 
-## 当前边界
+## Current scope
 
-MMAR 当前为 **v0.1 MVP**，核心提供 Python API 与 CLI。Agent 的 Action 限于消息通信；尚无工具执行、Web 管理界面或自动定时唤醒。环境可以通过消息和 `activate` 驱动实验。
+MMAR is a **v0.1 MVP** with a Python API and CLI. Agent actions are limited to messaging. Tool execution, a web management UI, and autonomous timers are not implemented. The host environment drives experiments through messages and `activate`.
 
-崩溃恢复保留已提交结果，未提交输入按配置限次恢复；外部模型调用可能已经发生，重试不保证只计费一次。Token 指标采用提供方报告值，不能作为精确金额预算。同一 Agent 的记忆跨会话共享；需要隔离时使用不同 ID。文本版本与事件尚未自动归档，长期运行需管理 Store 的磁盘使用。
+Crash recovery retains committed outcomes and restores uncommitted input within configured retry limits. External model requests may already have executed; retries do not guarantee single billing. Token metrics use provider-reported values and are not an exact monetary budget. Memory is shared across sessions for the same agent; use different IDs for isolation. Text versions and events are not yet automatically archived, so long-running deployments need disk management.
 
-## 文档
+## Documentation
 
-| 想了解什么 | 从这里开始 |
+Detailed design and validation documents are currently in Chinese; both READMEs include setup, architecture, results, and API examples.
+
+| Topic | Start here |
 |---|---|
-| 安装、API 配置、文件示例和运行时语义 | [使用指南](docs/runtime-guide.md) |
-| 30 Agent 真实模型验证与限制 | [真实模型验证](docs/live-provider-validation.md) |
-| 测试覆盖与 10 / 100 / 1,000 Agent 资源测量 | [MVP 验证记录](docs/mvp-validation.md) |
-| 原始目标与最终架构 | [v0.4 设计](docs/mmar-v0.4-design.md) |
-| 三轮设计评审过程 | [评审记录](docs/reviews/mmar-review-audit.md) |
+| Installation, provider configuration, file examples, and runtime semantics | [Usage guide](docs/runtime-guide.md) |
+| Real-model 30-agent validation and limitations | [Live model validation](docs/live-provider-validation.md) |
+| Test coverage and resource measurements for 10 / 100 / 1,000 agents | [MVP validation](docs/mvp-validation.md) |
+| Original goals and final architecture | [v0.4 design](docs/mmar-v0.4-design.md) |
+| Three rounds of design review | [Review audit](docs/reviews/mmar-review-audit.md) |
+| Current optimization priorities and offline reproductions | [v0.1 optimization review](docs/optimization-review-v0.1.md) |
 
-## 开发与验证
+## Development and verification
 
 ```bash
 uv sync --frozen --extra api
 uv run --no-sync python -m unittest discover -v
 ```
 
-已在 Python 3.11 与 3.12 上通过 **47 项测试**，包括真实子进程强制退出下的提交前、提交中、提交后恢复。单元测试不请求真实模型。复现离线规模测量：
+**47 tests** passed on Python 3.11 and 3.12, including real subprocess termination before, during, and after commit. Unit tests make no real model requests. Reproduce the offline scale measurements with:
 
 ```bash
 uv run --no-sync python -m benchmarks.mock_scale --output docs/benchmarks/mock-scale.json
 ```
 
-欢迎用 issue 分享可复现的问题、真实场景和实验结果。提交问题时请附 Python 版本、运行参数和已脱敏的错误信息。
+Issues with reproducible problems, concrete use cases, and experiment results are welcome. Include your Python version, run parameters, and redacted error details.
 
 ---
 
@@ -198,6 +214,6 @@ uv run --no-sync python -m benchmarks.mock_scale --output docs/benchmarks/mock-s
 
 **Many agents. One runtime.**
 
-身份与记忆属于 Agent，调度与持久性交给 Runtime。
+Identity and memory belong to agents. Scheduling and persistence belong to the runtime.
 
 </div>
