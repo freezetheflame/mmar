@@ -113,13 +113,17 @@ class Store:
         except OSError:
             self._lock.close()
             raise MmarError("store_in_use") from None
-        self._queue = queue.Queue(maxsize=limits.store_queue)
-        self._ready = concurrent.futures.Future()
-        self._closed = False
-        self._closing = False
-        self._shutdown_task = None
-        self._thread = threading.Thread(target=self._worker, name="mmar-store", daemon=True)
-        self._thread.start()
+        try:
+            self._queue = queue.Queue(maxsize=limits.store_queue)
+            self._ready = concurrent.futures.Future()
+            self._closed = False
+            self._closing = False
+            self._shutdown_task = None
+            self._thread = threading.Thread(target=self._worker, name="mmar-store", daemon=True)
+            self._thread.start()
+        except BaseException:
+            self._unlock()
+            raise
 
     async def ready(self):
         try:

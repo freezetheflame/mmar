@@ -10,7 +10,7 @@ Agents choose how to communicate. The runtime keeps execution bounded and durabl
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
 [![Core dependencies: 0](https://img.shields.io/badge/core_dependencies-0-59D6B0?style=flat-square)](pyproject.toml)
-[![Tests: 47 passed](https://img.shields.io/badge/tests-47_passed-59D6B0?style=flat-square)](docs/mvp-validation.md)
+[![Tests: 62 passed](https://img.shields.io/badge/tests-62_passed-59D6B0?style=flat-square)](docs/mvp-validation.md)
 [![Status: MVP](https://img.shields.io/badge/status-MVP-E7B96A?style=flat-square)](docs/mvp-validation.md)
 
 [Quick start](#quick-start) · [How it works](#how-it-works) · [Live model validation](#live-model-validation) · [Connect a model](#connect-a-model) · [Documentation](#documentation)
@@ -174,11 +174,15 @@ asyncio.run(main())
 
 The Python API also supports agent registration and retirement, sessions and groups, pause and resume, stop and drain, memory import and export, explicit budget reset, and event cursors. [Read the API and runtime semantics →](docs/runtime-guide.md#python-环境接口)
 
+Runtime owns its model adapter, including failed initialization. Concurrent close calls share cleanup; cancellation of a caller does not interrupt it. Export failures are reported after local cleanup. Custom adapters must cooperate with cancellation. See [shutdown semantics](docs/resource-cleanup-validation.md).
+
 ## Current scope
 
 MMAR is a **v0.1 MVP** with a Python API and CLI. Agent actions are limited to messaging. Tool execution, a web management UI, and autonomous timers are not implemented. The host environment drives experiments through messages and `activate`.
 
 Crash recovery retains committed outcomes and restores uncommitted input within configured retry limits. External model requests may already have executed; retries do not guarantee single billing. Token metrics use provider-reported values and are not an exact monetary budget. Memory is shared across sessions for the same agent; use different IDs for isolation. Text versions and events are not yet automatically archived, so long-running deployments need disk management.
+
+The planned destination is a full Rust implementation. Python remains the reference during migration; a runnable Rust backend has not been implemented yet. See the [migration plan and shared protocol fixtures](docs/rust-mode-plan.md).
 
 ## Documentation
 
@@ -192,6 +196,8 @@ Detailed design and validation documents are currently in Chinese; both READMEs 
 | Original goals and final architecture | [v0.4 design](docs/mmar-v0.4-design.md) |
 | Three rounds of design review | [Review audit](docs/reviews/mmar-review-audit.md) |
 | Current optimization priorities and offline reproductions | [v0.1 optimization review](docs/optimization-review-v0.1.md) |
+| Initialization, cancellation, and shutdown guarantees | [Resource cleanup validation](docs/resource-cleanup-validation.md) |
+| Full Rust migration target, phases, and conformance contract | [Rust migration plan](docs/rust-mode-plan.md) |
 
 ## Development and verification
 
@@ -200,7 +206,7 @@ uv sync --frozen --extra api
 uv run --no-sync python -m unittest discover -v
 ```
 
-**47 tests** passed on Python 3.11 and 3.12, including real subprocess termination before, during, and after commit. Unit tests make no real model requests. Reproduce the offline scale measurements with:
+**62 tests** passed on Python 3.11 and 3.12, including real subprocess termination before, during, and after commit. Unit tests make no real model requests. Reproduce the offline scale measurements with:
 
 ```bash
 uv run --no-sync python -m benchmarks.mock_scale --output docs/benchmarks/mock-scale.json

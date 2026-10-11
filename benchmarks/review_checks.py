@@ -74,7 +74,8 @@ async def export_close_check(root):
         return result
     finally:
         runtime.flush_exports = original
-        await runtime.close()
+        if not runtime._closed:
+            await runtime.close()
 
 
 async def rejected_open_check(root):

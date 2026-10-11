@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import os
 import tempfile
 from pathlib import Path
@@ -8,6 +9,36 @@ from pathlib import Path
 from .model import ModelAdapter
 from .protocol import Decision, InvalidDecision, Limits, MmarError, TransientModelError
 from .store import BudgetExceeded, Store
+
+
+def _observe_task(task):
+    if not task.cancelled():
+        task.exception()
+
+
+async def _close_adapter(model, timeout):
+    task = asyncio.create_task(model.aclose(), name="mmar-model-close")
+    task.add_done_callback(_observe_task)
+    done, _ = await asyncio.wait({task}, timeout=timeout)
+    if not done:
+        task.cancel()
+        await asyncio.sleep(0)
+        raise MmarError("model_close_timeout")
+    return task.result()
+
+
+async def _cleanup_open_failure(store, model):
+    try:
+        if store is not None:
+            try:
+                await store.ready()
+            except BaseException:
+                # ready() joins and unlocks a failed initialization.
+                pass
+            else:
+                await store.close()
+    finally:
+        await _close_adapter(model, 10)
 
 
 class Runtime:
@@ -23,19 +54,32 @@ class Runtime:
         self._fault = None
         self._closing = False
         self._closed = False
+        self._shutdown_task = None
+        self._export_batch_task = None
 
     @classmethod
     async def open(cls, store_path, *, model: ModelAdapter, limits=None, agent_root=None):
-        limits = limits or Limits()
-        path = Path(store_path)
-        root = Path(agent_root) if agent_root else path.parent / "agents"
-        store = Store(path, root, limits)
+        store = None
         try:
+            limits = limits or Limits()
+            path = Path(store_path)
+            root = Path(agent_root) if agent_root else path.parent / "agents"
+            store = Store(path, root, limits)
             await store.ready()
-        except BaseException:
-            await model.aclose()
+            return cls(store, model, limits)
+        except BaseException as original:
+            cleanup = asyncio.create_task(_cleanup_open_failure(store, model), name="mmar-open-cleanup")
+            cleanup.add_done_callback(_observe_task)
+            try:
+                await asyncio.shield(cleanup)
+            except asyncio.CancelledError:
+                # A repeated caller cancellation must not cancel cleanup.
+                if not cleanup.cancelled():
+                    raise
+                original.add_note("Initialization cleanup failed: CancelledError")
+            except BaseException as error:
+                original.add_note("Initialization cleanup failed: " + type(error).__name__)
             raise
-        return cls(store, model, limits)
 
     async def __aenter__(self):
         return self
@@ -58,6 +102,8 @@ class Runtime:
     async def _call(self, method, **kwargs):
         if self._closed:
             raise MmarError("runtime_closed")
+        if self._closing:
+            raise MmarError("runtime_closing")
         try:
             return await self._store.call(method, **kwargs)
         finally:
@@ -114,6 +160,8 @@ class Runtime:
         return await self._call("reset_budget")
 
     async def start(self):
+        if self._closing:
+            raise MmarError("runtime_closing")
         if self._state != "CREATED":
             raise MmarError("invalid_runtime_transition")
         await self._work("control", state="RUNNING")
@@ -135,7 +183,7 @@ class Runtime:
         try:
             while self._state not in ("STOPPED", "FAILED"):
                 event = self._changed
-                if self._state == "RUNNING" and len(self._active) < self.limits.concurrency:
+                if not self._closing and self._state == "RUNNING" and len(self._active) < self.limits.concurrency:
                     try:
                         async with self._dispatch_lock:
                             if self._state != "RUNNING":
@@ -240,6 +288,8 @@ class Runtime:
         self._notify()
 
     async def resume(self):
+        if self._closing:
+            raise MmarError("runtime_closing")
         if self._state != "PAUSED":
             raise MmarError("invalid_runtime_transition")
         await self._work("control", state="RUNNING")
@@ -345,15 +395,25 @@ class Runtime:
 
     async def _export_batch(self):
         async with self._export_lock:
-            jobs = await self._work("exports")
-            for job in jobs:
-                try:
-                    await asyncio.to_thread(self._write_export, job)
-                except Exception:
-                    await self._work("export_failed", agent=job["agent"], revision=job["revision"])
-                else:
-                    await self._work("exported", agent=job["agent"], revision=job["revision"])
-            return len(jobs)
+            if self._export_batch_task is None or self._export_batch_task.done():
+                jobs = await self._work("exports")
+                if not jobs:
+                    return 0
+                self._export_batch_task = asyncio.create_task(self._write_export_batch(jobs), name="mmar-export-batch")
+                self._export_batch_task.add_done_callback(_observe_task)
+            task = self._export_batch_task
+        # Cancellation cannot interrupt an admitted file write or its DB receipt.
+        return await asyncio.shield(task)
+
+    async def _write_export_batch(self, jobs):
+        for job in jobs:
+            try:
+                await asyncio.to_thread(self._write_export, job)
+            except Exception:
+                await self._work("export_failed", agent=job["agent"], revision=job["revision"])
+            else:
+                await self._work("exported", agent=job["agent"], revision=job["revision"])
+        return len(jobs)
 
     async def _export_loop(self):
         try:
@@ -375,18 +435,64 @@ class Runtime:
                 pass
         return await self._work("export_status")
 
-    async def close(self):
+    async def close(self, *, timeout=10):
+        if isinstance(timeout, bool) or not isinstance(timeout, (int, float)) or not math.isfinite(timeout) or timeout <= 0:
+            raise ValueError("Positive finite cleanup timeout required")
         if self._closed:
+            if self._shutdown_task is not None:
+                await asyncio.shield(self._shutdown_task)
             return
-        await self.stop()
-        self._closing = True
-        self._notify()
-        if self._exporter:
-            await self._exporter
-        await self.flush_exports()
-        try:
-            await self.model.aclose()
-        finally:
-            await self._store.close()
-            self._closed = True
+        if self._shutdown_task is None or self._shutdown_task.done():
+            self._closing = True
             self._notify()
+            self._shutdown_task = asyncio.create_task(self._shutdown(timeout), name="mmar-runtime-close")
+            self._shutdown_task.add_done_callback(_observe_task)
+        await asyncio.shield(self._shutdown_task)
+
+    async def _shutdown(self, timeout):
+        errors = []
+        try:
+            await self.stop(timeout=timeout)
+        except BaseException as error:
+            errors.append(error)
+        # A model that ignores cancellation must not lose its Store underneath it.
+        if any(not task.done() for _, task in self._active.values()):
+            if errors:
+                raise errors[0]
+            raise MmarError("stop_timeout")
+        if self._scheduler and not self._scheduler.done():
+            self._scheduler.cancel()
+            await asyncio.gather(self._scheduler, return_exceptions=True)
+        if self._exporter:
+            self._exporter.cancel()
+            await asyncio.gather(self._exporter, return_exceptions=True)
+        try:
+            await self.flush_exports(timeout=timeout)
+        except BaseException as error:
+            errors.append(error)
+        # to_thread file I/O cannot be killed safely. Settle the tracked batch
+        # before closing SQLite, even if the optional flush deadline expired.
+        if self._export_batch_task is not None:
+            try:
+                await asyncio.shield(self._export_batch_task)
+            except BaseException as error:
+                if not any(error is previous for previous in errors):
+                    errors.append(error)
+        try:
+            await _close_adapter(self.model, timeout)
+        except BaseException as error:
+            errors.append(error)
+        finally:
+            try:
+                await self._store.close()
+            except BaseException as error:
+                errors.append(error)
+            else:
+                self._closed = True
+                self._state = "STOPPED"
+            finally:
+                self._notify()
+        if len(errors) == 1:
+            raise errors[0]
+        if errors:
+            raise BaseExceptionGroup("Runtime cleanup failed", errors)

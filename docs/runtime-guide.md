@@ -144,6 +144,14 @@ Limits 配置随 Store 持久化。重新打开时必须使用相同 Limits，�
 
 `metrics()` 报告注册数量、在途执行、未完成投递、各状态 step、请求和投递计数、事件游标与已报告 token 用量。缺失 usage 的 attempt 单独计数；“已报告 token 合计”不代表精确总费用。
 
+## 初始化和关闭
+
+`Runtime.open` 接管传入的 ModelAdapter，包括初始化失败时的关闭；不要让多个 Runtime 共用同一个 Adapter。常规用法是 `async with await Runtime.open(...)`。自定义 Adapter 的 `complete()`、`aclose()` 应配合 asyncio 取消。
+
+显式关闭可调用 `await runtime.close(timeout=10)`。并发调用共享一次关闭流程，调用者取消不会取消清理。关闭开始后拒绝新写入和 start / resume；导出失败仍会继续释放模型客户端和 Store，随后报告异常。已完成关闭的重复调用返回同一结果，不重复释放资源。
+
+timeout 是停止、导出刷新和 Adapter 关闭各阶段的期限，不是总耗时上限：已经开始的文件写入与 SQLite 命令需要结算。忽略取消的在途模型导致 `stop_timeout` 时，Store 所有权会保留，待模型结束后可重试关闭。更多异常语义与回归证据见 [资源清理验证](resource-cleanup-validation.md)。
+
 ## 测试与资源测量
 
 ```powershell

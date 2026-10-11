@@ -15,6 +15,12 @@ class ModelReply:
 
 
 class ModelAdapter(Protocol):
+    """Runtime.open takes ownership, including when initialization fails.
+
+    complete() and aclose() must cooperate with asyncio cancellation. A shared
+    adapter must not be passed to multiple runtimes, since each owns its close.
+    """
+
     async def complete(self, snapshot: StepSnapshot, *, repair: bool = False) -> ModelReply: ...
     async def aclose(self) -> None: ...
 

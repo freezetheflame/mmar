@@ -10,7 +10,7 @@
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](pyproject.toml)
 [![Core dependencies: 0](https://img.shields.io/badge/core_dependencies-0-59D6B0?style=flat-square)](pyproject.toml)
-[![Tests: 47 passed](https://img.shields.io/badge/tests-47_passed-59D6B0?style=flat-square)](docs/mvp-validation.md)
+[![Tests: 62 passed](https://img.shields.io/badge/tests-62_passed-59D6B0?style=flat-square)](docs/mvp-validation.md)
 [![Status: MVP](https://img.shields.io/badge/status-MVP-E7B96A?style=flat-square)](docs/mvp-validation.md)
 
 [快速开始](#快速开始) · [工作方式](#工作方式) · [真实模型实测](#真实模型实测) · [接入模型](#接入模型) · [文档](#文档)
@@ -163,11 +163,15 @@ asyncio.run(main())
 
 通过 Python API 还可管理注册与注销、会话与群组、暂停与恢复、停止与 drain、记忆导入导出、预算重置，以及事件游标。[查看接口与运行语义 →](docs/runtime-guide.md#python-环境接口)
 
+Runtime 接管模型 Adapter，包括初始化失败时的清理。并发关闭共用一次流程，取消调用者不会中断清理；导出失败在本地清理后报告。自定义 Adapter 需要配合取消。详见 [关闭语义](docs/resource-cleanup-validation.md)。
+
 ## 当前边界
 
 MMAR 当前为 **v0.1 MVP**，核心提供 Python API 与 CLI。Agent 的 Action 限于消息通信；尚无工具执行、Web 管理界面或自动定时唤醒。环境可以通过消息和 `activate` 驱动实验。
 
 崩溃恢复保留已提交结果，未提交输入按配置限次恢复；外部模型调用可能已经发生，重试不保证只计费一次。Token 指标采用提供方报告值，不能作为精确金额预算。同一 Agent 的记忆跨会话共享；需要隔离时使用不同 ID。文本版本与事件尚未自动归档，长期运行需管理 Store 的磁盘使用。
+
+后续目标为整体迁移到 Rust，Python 暂时作为迁移验收参照；当前尚无可运行的 Rust 后端。阶段与共享协议用例见 [迁移路线](docs/rust-mode-plan.md)。
 
 ## 文档
 
@@ -179,6 +183,8 @@ MMAR 当前为 **v0.1 MVP**，核心提供 Python API 与 CLI。Agent 的 Action
 | 原始目标与最终架构 | [v0.4 设计](docs/mmar-v0.4-design.md) |
 | 三轮设计评审过程 | [评审记录](docs/reviews/mmar-review-audit.md) |
 | 当前优化优先级与离线复现 | [v0.1 优化评审](docs/optimization-review-v0.1.md) |
+| 初始化、取消与关闭的资源释放保证 | [资源清理验证](docs/resource-cleanup-validation.md) |
+| 整体迁移 Rust 的阶段和兼容契约 | [Rust 迁移路线](docs/rust-mode-plan.md) |
 
 ## 开发与验证
 
@@ -187,7 +193,7 @@ uv sync --frozen --extra api
 uv run --no-sync python -m unittest discover -v
 ```
 
-已在 Python 3.11 与 3.12 上通过 **47 项测试**，包括真实子进程强制退出下的提交前、提交中、提交后恢复。单元测试不请求真实模型。复现离线规模测量：
+已在 Python 3.11 与 3.12 上通过 **62 项测试**，包括真实子进程强制退出下的提交前、提交中、提交后恢复。单元测试不请求真实模型。复现离线规模测量：
 
 ```bash
 uv run --no-sync python -m benchmarks.mock_scale --output docs/benchmarks/mock-scale.json

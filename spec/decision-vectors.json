@@ -1,0 +1,212 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "silence",
+      "raw": "{\"actions\":[],\"memory_replace\":null}",
+      "expected": {
+        "actions": [],
+        "memory_replace": null
+      }
+    },
+    {
+      "name": "send_one",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected": {
+        "actions": [
+          {
+            "type": "send",
+            "targets": [
+              "bob"
+            ],
+            "content": "hello"
+          }
+        ],
+        "memory_replace": null
+      }
+    },
+    {
+      "name": "send_multiple_and_memory",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\",\"charlie\"],\"content\":\"hello\"}],\"memory_replace\":\"# Memory\\n- Sent\"}",
+      "expected": {
+        "actions": [
+          {
+            "type": "send",
+            "targets": [
+              "bob",
+              "charlie"
+            ],
+            "content": "hello"
+          }
+        ],
+        "memory_replace": "# Memory\n- Sent"
+      }
+    },
+    {
+      "name": "broadcast",
+      "raw": "{\"actions\":[{\"type\":\"broadcast\",\"group\":\"room\",\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected": {
+        "actions": [
+          {
+            "type": "broadcast",
+            "group": "room",
+            "content": "hello"
+          }
+        ],
+        "memory_replace": null
+      }
+    },
+    {
+      "name": "text_preserved",
+      "raw": "{\"actions\":[],\"memory_replace\":\"  # Memory\\n \"}",
+      "expected": {
+        "actions": [],
+        "memory_replace": "  # Memory\n "
+      }
+    },
+    {
+      "name": "utf8_at_byte_limit",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"北京\"}],\"memory_replace\":null}",
+      "expected": {
+        "actions": [
+          {
+            "type": "send",
+            "targets": [
+              "bob"
+            ],
+            "content": "北京"
+          }
+        ],
+        "memory_replace": null
+      },
+      "limits": {
+        "message_bytes": 6
+      }
+    },
+    {
+      "name": "store_checks_target_authorization",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"unknown\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected": {
+        "actions": [
+          {
+            "type": "send",
+            "targets": [
+              "unknown"
+            ],
+            "content": "hello"
+          }
+        ],
+        "memory_replace": null
+      }
+    },
+    {
+      "name": "utf8_above_byte_limit",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"北京市\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision",
+      "limits": {
+        "message_bytes": 6
+      }
+    },
+    {
+      "name": "top_level_unknown",
+      "raw": "{\"actions\":[],\"memory_replace\":null,\"sender\":\"system\"}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "top_level_duplicate",
+      "raw": "{\"actions\":[],\"actions\":[],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "action_duplicate",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"a\",\"content\":\"b\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "missing_memory",
+      "raw": "{\"actions\":[]}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "actions_not_list",
+      "raw": "{\"actions\":{},\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "unknown_action",
+      "raw": "{\"actions\":[{\"type\":\"shell\",\"content\":\"exit\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "empty_targets",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "duplicate_targets",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\",\"bob\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "invalid_id",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"../bob\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "oversize_id",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "empty_memory",
+      "raw": "{\"actions\":[],\"memory_replace\":\"\"}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "control_whitespace_memory",
+      "raw": "{\"actions\":[],\"memory_replace\":\"\\u001c\"}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "empty_content",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\" \\t\\n\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "non_string_content",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":true}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "extra_action_field",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"hello\",\"execute\":true}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "action_limit",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"hello\"},{\"type\":\"send\",\"targets\":[\"bob\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision",
+      "limits": {
+        "actions": 1
+      }
+    },
+    {
+      "name": "target_limit",
+      "raw": "{\"actions\":[{\"type\":\"send\",\"targets\":[\"bob\",\"charlie\"],\"content\":\"hello\"}],\"memory_replace\":null}",
+      "expected_error": "invalid_decision",
+      "limits": {
+        "targets": 1
+      }
+    },
+    {
+      "name": "nonfinite_json",
+      "raw": "{\"actions\":[],\"memory_replace\":NaN}",
+      "expected_error": "invalid_decision"
+    },
+    {
+      "name": "invalid_json",
+      "raw": "{\"actions\":[",
+      "expected_error": "invalid_decision"
+    }
+  ]
+}

@@ -8,6 +8,8 @@ dist/
 .env.*
 !.env.example
 .mmar/
+.mmar-rust/
+target/
 *.db
 *.db-journal
 *.db-wal
